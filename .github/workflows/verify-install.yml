@@ -1,0 +1,22 @@
+name: Verify native installation
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  consumer:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+      - name: Install from organization R-universe and run the public API
+        run: |
+          Rscript -e 'install.packages("propertycohorts", repos="https://novasia-estate.r-universe.dev"); library(propertycohorts); stopifnot(as.character(packageVersion("propertycohorts")) == "1.0.0"); x <- synthetic_cohorts(); a <- audit_cohorts(x$before, x$after, c("district", "property_type")); stopifnot(a$summary$raw_change == 1200, a$summary$within_change == 0, a$summary$composition_change == 1200); write_cohort_report(a, "native-report"); stopifnot(file.exists("native-report/index.html")); print(a)'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-cohort-report
+          path: native-report
